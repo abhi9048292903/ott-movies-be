@@ -10,7 +10,7 @@ The React app in `ott-movies` is the client. This API owns the database.
 - FastAPI + Uvicorn
 - SQLAlchemy
 - SQLite (`ott.db`) for local development
-- JWT (admin login) + bcrypt (password hashes)
+- JWT (admin login) + PBKDF2 password hashes (stdlib, Workers-safe)
 
 ## Overview
 
@@ -29,14 +29,28 @@ The predictor is a heuristic (`heuristic-v1`): it uses historical theatrical-to-
 
 ## Start locally
 
-From this folder:
+From this folder. `uvicorn` is installed **inside the virtualenv**, so a bare `uvicorn` command fails with `command not found` until the venv is active.
+
+First-time setup:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -e ".[local]"
 cp .env.example .env
-uvicorn app.main:app --reload --port 8000
+```
+
+Every later start (venv must be activated — your prompt usually shows `(.venv)`):
+
+```bash
+source .venv/bin/activate
+python -m uvicorn app.main:app --reload --port 8000
+```
+
+Or skip activate and call the venv Python directly:
+
+```bash
+.venv/bin/python -m uvicorn app.main:app --reload --port 8000
 ```
 
 - API: [http://127.0.0.1:8000](http://127.0.0.1:8000)
@@ -90,9 +104,14 @@ app/
   routers/movies.py
   services/seed.py
   services/predict.py
-requirements.txt       local install (uvicorn)
+src/entry.py           Cloudflare Worker → FastAPI (ASGI)
+pyproject.toml         dependencies (Cloudflare + local)
 ```
+
+Cloudflare Workers cannot use `requirements.txt` (pywrangler). Local `uvicorn` is an optional extra: `pip install -e ".[local]"`. Password hashing uses stdlib PBKDF2, not bcrypt.
+
+SQLite files still will not persist on Workers; a D1 (or other hosted) database is required for a real Cloudflare deploy.
 
 ## Git
 
-Ignored: `.env`, `.venv/`, `*.db`, `__pycache__/`. Keep `.env.example` and `requirements.txt` in git.
+Ignored: `.env`, `.venv/`, `*.db`, `__pycache__/`. Keep `.env.example` and `pyproject.toml` in git.

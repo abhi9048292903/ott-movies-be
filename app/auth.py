@@ -1,6 +1,8 @@
 from datetime import UTC, datetime, timedelta
+from hashlib import pbkdf2_hmac
+from hmac import compare_digest
+from secrets import token_hex
 
-import bcrypt
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -12,13 +14,30 @@ from app.models import User
 
 bearer = HTTPBearer(auto_error=False)
 
+_PBKDF2_PREFIX = "pbkdf2_sha256"
+_PBKDF2_ROUNDS = 210_000
+
 
 def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    salt = token_hex(16)
+    digest = pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), _PBKDF2_ROUNDS).hex()
+    return f"{_PBKDF2_PREFIX}${_PBKDF2_ROUNDS}${salt}${digest}"
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
+    try:
+        scheme, rounds_s, salt, expected = password_hash.split("$", 3)
+        if scheme != _PBKDF2_PREFIX:
+            return False
+        digest = pbkdf2_hmac(
+            "sha256",
+            password.encode("utf-8"),
+            salt.encode("utf-8"),
+            int(rounds_s),
+        ).hex()
+        return compare_digest(digest, expected)
+    except (ValueError, TypeError):
+        return False
 
 
 def create_access_token(user: User) -> str:

@@ -19,14 +19,18 @@ PLATFORMS = [
 
 
 def seed(db: Session) -> None:
-    if db.query(User).count() == 0:
+    admin_email = settings.admin_email.lower()
+    admin = db.query(User).filter(User.email == admin_email).first()
+    if admin is None:
         db.add(
             User(
-                email=settings.admin_email.lower(),
+                email=admin_email,
                 password_hash=hash_password(settings.admin_password),
                 role="admin",
             )
         )
+    elif not admin.password_hash.startswith("pbkdf2_sha256$"):
+        admin.password_hash = hash_password(settings.admin_password)
 
     if db.query(Platform).count() == 0:
         db.add_all([Platform(name=name, slug=slug) for name, slug in PLATFORMS])
