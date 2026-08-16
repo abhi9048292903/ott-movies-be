@@ -40,3 +40,5 @@ python_modules/
 .idea/
 .vscode/
 *.swp
+
+requirements.txt
