@@ -1,0 +1,10 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "ott-movies-be",
+  "main": "src/entry.py",
+  "compatibility_date": "2026-08-16",
+  "compatibility_flags": ["python_workers"],
+  "vars": {
+    "CORS_ORIGINS": "http://localhost:5173"
+  }
+}

@@ -1,0 +1,18 @@
+[project]
+name = "ott-movies-be"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi==0.116.1",
+    "sqlalchemy==2.0.43",
+    "pydantic-settings==2.10.1",
+    "PyJWT==2.10.1",
+    "bcrypt==4.3.0",
+    "python-dotenv==1.1.1",
+]
+
+[dependency-groups]
+dev = [
+    "workers-py",
+    "workers-runtime-sdk",
+]

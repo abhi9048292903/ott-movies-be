@@ -30,6 +30,11 @@ build/
 .coverage
 htmlcov/
 
+# Cloudflare Workers
+node_modules/
+.wrangler/
+python_modules/
+
 # OS / editor
 .DS_Store
 .idea/
