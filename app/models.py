@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Optional
 
-from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import Date, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -30,14 +30,15 @@ class Platform(Base):
 
 class Movie(Base):
     __tablename__ = "movies"
+    __table_args__ = (Index("ix_movies_language_country", "language", "country"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     title: Mapped[str] = mapped_column(String(300), index=True)
     overview: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     poster_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    theatrical_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
-    language: Mapped[str] = mapped_column(String(16), default="en")
-    country: Mapped[str] = mapped_column(String(8), default="IN")
+    theatrical_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True, index=True)
+    language: Mapped[str] = mapped_column(String(16), default="en", index=True)
+    country: Mapped[str] = mapped_column(String(8), default="IN", index=True)
     tmdb_id: Mapped[Optional[int]] = mapped_column(Integer, unique=True, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
@@ -54,6 +55,8 @@ class MovieAvailability(Base):
     __tablename__ = "movie_availability"
     __table_args__ = (
         UniqueConstraint("movie_id", "platform_id", "region", "availability_type", name="uq_movie_platform_region_type"),
+        Index("ix_movie_availability_movie_id", "movie_id"),
+        Index("ix_movie_availability_platform_id", "platform_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -73,7 +76,7 @@ class OttDate(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     movie_id: Mapped[int] = mapped_column(ForeignKey("movies.id", ondelete="CASCADE"), unique=True)
-    status: Mapped[str] = mapped_column(String(24), default="unknown")
+    status: Mapped[str] = mapped_column(String(24), default="unknown", index=True)
     announced_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     predicted_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     predicted_window_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

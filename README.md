@@ -9,7 +9,8 @@ The React app in `ott-movies` is the client. This API owns the database.
 - Python 3.13+
 - FastAPI + Uvicorn
 - SQLAlchemy
-- SQLite (`ott.db`) for local development
+- SQLite (`ott.db`) locally; **PostgreSQL** for durable production
+- Alembic migrations
 - JWT (admin login) + PBKDF2 password hashes (stdlib, Workers-safe)
 
 ## Overview
@@ -65,7 +66,7 @@ Copy `.env.example` to `.env` (never commit `.env`):
 
 | Variable | Purpose |
 |---|---|
-| `DATABASE_URL` | Default `sqlite:///./ott.db` (file in this folder) |
+| `DATABASE_URL` | Local: `sqlite:///./ott.db`. Production: `postgresql://USER:PASSWORD@HOST:5432/ott_radar` |
 | `JWT_SECRET` | Sign admin tokens |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Seeded on first start if no users exist |
 | `CORS_ORIGINS` | Allowed browser origins, comma-separated |
@@ -74,9 +75,30 @@ Default admin: `admin@ott.local` / `admin123`
 
 ## How the database is connected
 
-`DATABASE_URL` is loaded in `app/config.py`. `app/db.py` builds a SQLAlchemy engine and session. For SQLite it resolves `./ott.db` to an absolute path next to this README.
+`DATABASE_URL` is loaded in `app/config.py`. `app/db.py` builds a SQLAlchemy engine.
 
-Routes use `get_db()` so each request gets a session that is closed afterward. Tables are defined in `app/models.py`: `users`, `platforms`, `movies`, `movie_availability`, `ott_dates`.
+| Environment | Store | Why |
+|---|---|---|
+| Local | SQLite file `ott.db` | Zero extra services |
+| Production API | **PostgreSQL** | Durable, works with existing SQLAlchemy models |
+| Cloudflare Python Workers | In-memory SQLite fallback | No disk; not durable |
+
+**D1 is not used.** D1 would replace SQLAlchemy sessions with Worker bindings. Postgres keeps the current FastAPI/ORM architecture. On Cloudflare, pair Postgres with [Hyperdrive](https://developers.cloudflare.com/hyperdrive/) later, or run this API on a host that supports Postgres (Render, Railway, Fly).
+
+Startup still creates missing tables/indexes and seeds sample data. For a new Postgres database, also run migrations:
+
+```bash
+pip install -e ".[postgres]"
+alembic upgrade head
+```
+
+If local SQLite already exists from before Alembic:
+
+```bash
+alembic stamp head
+```
+
+Tables: `users`, `platforms`, `movies`, `movie_availability`, `ott_dates`. Indexes cover title, language, country, theatrical date, OTT status, and availability FKs (needed for prediction and discovery queries).
 
 ## Main endpoints
 

@@ -4,14 +4,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.db import Base, SessionLocal, engine
+from app.db import SessionLocal, engine, init_schema, ping_db
 from app.routers import auth, movies
 from app.services.seed import seed
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    Base.metadata.create_all(bind=engine)
+    init_schema()
     db = SessionLocal()
     try:
         seed(db)
@@ -34,4 +34,5 @@ app.include_router(movies.router)
 
 @app.get("/health")
 def health():
-    return {"ok": True}
+    ping_db()
+    return {"ok": True, "dialect": engine.dialect.name}
