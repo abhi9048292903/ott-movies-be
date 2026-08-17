@@ -6,7 +6,7 @@ from app.auth import get_current_admin
 from app.db import get_db
 from app.models import Movie, MovieAvailability, OttDate, Platform, User
 from app.schemas import MovieListResponse, MovieOut, MovieWrite, PlatformOut
-from app.services.predict import predict_ott_date
+from app.services.predict import apply_prediction, clear_prediction, predict_ott_date
 
 router = APIRouter()
 
@@ -14,7 +14,7 @@ router = APIRouter()
 def _movie_query(db: Session):
     return db.query(Movie).options(
         joinedload(Movie.availability).joinedload(MovieAvailability.platform),
-        joinedload(Movie.ott),
+        joinedload(Movie.ott).joinedload(OttDate.likely_platform),
     )
 
 
@@ -48,16 +48,16 @@ def _apply_write(db: Session, movie: Movie, payload: MovieWrite) -> Movie:
     movie.ott.announced_date = payload.announced_date if payload.ott_status != "unknown" else None
 
     if payload.ott_status == "unknown":
-        prediction = predict_ott_date(db, payload.theatrical_date, payload.language, payload.country)
-        movie.ott.predicted_date = prediction["predicted_date"]
-        movie.ott.predicted_window_days = prediction["predicted_window_days"]
-        movie.ott.confidence = prediction["confidence"]
-        movie.ott.model_version = prediction["model_version"]
+        prediction = predict_ott_date(
+            db,
+            payload.theatrical_date,
+            payload.language,
+            payload.country,
+            availability_platform_ids=[item.platform_id for item in payload.availability],
+        )
+        apply_prediction(movie.ott, prediction)
     else:
-        movie.ott.predicted_date = None
-        movie.ott.predicted_window_days = None
-        movie.ott.confidence = None
-        movie.ott.model_version = None
+        clear_prediction(movie.ott)
 
     return movie
 
@@ -140,12 +140,15 @@ def refresh_prediction(
         raise HTTPException(status_code=404, detail="Movie not found")
     if movie.ott is None:
         movie.ott = OttDate(status="unknown")
-    prediction = predict_ott_date(db, movie.theatrical_date, movie.language, movie.country)
+    prediction = predict_ott_date(
+        db,
+        movie.theatrical_date,
+        movie.language,
+        movie.country,
+        availability_platform_ids=[item.platform_id for item in movie.availability],
+    )
     movie.ott.status = "unknown"
     movie.ott.announced_date = None
-    movie.ott.predicted_date = prediction["predicted_date"]
-    movie.ott.predicted_window_days = prediction["predicted_window_days"]
-    movie.ott.confidence = prediction["confidence"]
-    movie.ott.model_version = prediction["model_version"]
+    apply_prediction(movie.ott, prediction)
     db.commit()
     return _to_out(_movie_query(db).filter(Movie.id == movie_id).first())

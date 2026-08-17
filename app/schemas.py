@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -49,8 +49,13 @@ class OttOut(BaseModel):
     announced_date: Optional[date] = None
     predicted_date: Optional[date] = None
     predicted_window_days: Optional[int] = None
+    window_start: Optional[date] = None
+    window_end: Optional[date] = None
     confidence: Optional[float] = None
+    likely_platform: Optional[PlatformOut] = None
+    platform_confidence: Optional[float] = None
     model_version: Optional[str] = None
+    generated_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 

@@ -80,7 +80,13 @@ class OttDate(Base):
     announced_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     predicted_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     predicted_window_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    window_start: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    window_end: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     confidence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    likely_platform_id: Mapped[Optional[int]] = mapped_column(ForeignKey("platforms.id"), nullable=True)
+    platform_confidence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     model_version: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    generated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     movie: Mapped[Movie] = relationship(back_populates="ott")
+    likely_platform: Mapped[Optional[Platform]] = relationship(foreign_keys=[likely_platform_id])

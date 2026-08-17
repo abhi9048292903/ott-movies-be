@@ -86,7 +86,13 @@ def seed(db: Session) -> None:
         unknown.availability.append(
             MovieAvailability(platform=hotstar, region="IN", availability_type="stream")
         )
-        prediction = predict_ott_date(db, unknown.theatrical_date, unknown.language, unknown.country)
+        prediction = predict_ott_date(
+            db,
+            unknown.theatrical_date,
+            unknown.language,
+            unknown.country,
+            availability_platform_ids=[hotstar.id],
+        )
         unknown.ott = OttDate(status="unknown", **prediction)
 
         db.add_all([available, announced, unknown])
