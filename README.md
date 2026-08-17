@@ -45,13 +45,13 @@ Every later start (venv must be activated — your prompt usually shows `(.venv)
 
 ```bash
 source .venv/bin/activate
-python -m uvicorn app.main:app --reload --port 8000
+python -m uvicorn app.main:app --reload --port 8000 --app-dir src
 ```
 
 Or skip activate and call the venv Python directly:
 
 ```bash
-.venv/bin/python -m uvicorn app.main:app --reload --port 8000
+.venv/bin/python -m uvicorn app.main:app --reload --port 8000 --app-dir src
 ```
 
 - API: [http://127.0.0.1:8000](http://127.0.0.1:8000)
